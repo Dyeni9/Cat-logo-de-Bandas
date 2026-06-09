@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { onAuthStateChanged } from 'firebase/auth'
-import { auth } from '../plugins/firebase'
+import { useAuthStore } from '../store/auth'
 
 import Home from '../pages/Home.vue'
 import Lista from '../pages/Lista.vue'
@@ -21,32 +20,18 @@ const router = createRouter({
   routes
 })
 
-// Função auxiliar para checar o estado atual do usuário no Firebase
-const obterUsuarioAtual = () => {
-  return new Promise((resolve, reject) => {
-    const unsubscribe = onAuthStateChanged(
-      auth,
-      (user) => {
-        unsubscribe();
-        resolve(user);
-      },
-      reject
-    );
-  });
-};
+// Guarda de rota baseada no estado global do Pinia
+router.beforeEach((to, from, next) => {
+  const authStore = useAuthStore()
+  const requerAuth = to.matched.some(record => record.meta.requerAutenticacao)
 
-// Guarda de Rota: Bloqueia acessos não autorizados
-router.beforeEach(async (to, from, next) => {
-  const requerAuth = to.matched.some(record => record.meta.requerAutenticacao);
-  const usuarioLogado = await obterUsuarioAtual();
-
-  if (requerAuth && !usuarioLogado) {
-    next('/login');
-  } else if (to.path === '/login' && usuarioLogado) {
-    next('/');
+  if (requerAuth && !authStore.usuario) {
+    next('/login')
+  } else if (to.path === '/login' && authStore.usuario) {
+    next('/')
   } else {
-    next();
+    next()
   }
-});
+})
 
-export default router;
+export default router

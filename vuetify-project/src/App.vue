@@ -1,7 +1,6 @@
 <template>
   <v-app>
-    <!-- A barra superior só aparece se o usuário estiver logado -->
-    <v-app-bar v-if="usuario" color="primary" elevation="2">
+    <v-app-bar v-if="authStore.usuario" color="primary" elevation="2">
       <v-app-bar-title class="font-weight-bold">🎵 RockBio - Catálogo de Bandas</v-app-bar-title>
       <v-spacer></v-spacer>
       
@@ -9,46 +8,35 @@
       <v-btn to="/lista" variant="text" class="text-white">Bandas</v-btn>
       <v-btn to="/sobre" variant="text" class="text-white">Sobre</v-btn>
       
-      <!-- Detalhes do Usuário Google -->
-      <v-avatar size="32" class="ml-4 mr-2" v-if="usuario.photoURL">
-        <v-img :src="usuario.photoURL" alt="Foto de Perfil"></v-img>
+      <v-avatar size="32" class="ml-4 mr-2" v-if="authStore.usuario.photoURL">
+        <v-img :src="authStore.usuario.photoURL" alt="Foto de Perfil"></v-img>
       </v-avatar>
       
-      <!-- Botão de Sair corrigido com cor contrastante branca explícita -->
-      <v-btn icon @click="fazerLogout" title="Sair do Sistema" class="text-white">
+      <v-btn icon @click="desconectar" title="Sair do Sistema" class="text-white">
         <v-icon>mdi-logout</v-icon>
       </v-btn>
     </v-app-bar>
 
     <v-main>
       <v-container class="mt-4">
-        <router-view />
+        <router-view v-if="!authStore.carregando" />
+        <v-container v-else class="fill-height d-flex align-center justify-center">
+          <v-progress-circular indeterminate color="primary"></v-progress-circular>
+        </v-container>
       </v-container>
     </v-main>
   </v-app>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth } from './plugins/firebase';
-import { useRouter } from 'vue-router';
+import { useAuthStore } from './store/auth'
+import { useRouter } from 'vue-router'
 
-const usuario = ref(null);
-const router = useRouter();
+const authStore = useAuthStore()
+const router = useRouter()
 
-onMounted(() => {
-  onAuthStateChanged(auth, (user) => {
-    usuario.value = user;
-  });
-});
-
-async function fazerLogout() {
-  try {
-    await signOut(auth);
-    router.push('/login');
-  } catch (error) {
-    console.error("Erro ao fazer logout:", error);
-  }
+async function desconectar() {
+  await authStore.fazerLogout()
+  router.push('/login')
 }
 </script>
